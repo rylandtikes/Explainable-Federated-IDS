@@ -1,0 +1,9 @@
+{
+  "client_id": "node-epsilon",
+  "server_address": "192.168.8.147:9091",
+  "batch_size": 64,
+  "learning_rate": 0.0005,
+  "use_gpu": false,
+  "dataset_path": "/home/rtikes/Explainable-Federated-IDS/data/cicids/CICIDS2017_epsilon.csv"
+}
+
