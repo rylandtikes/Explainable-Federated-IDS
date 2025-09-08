@@ -1,7 +1,5 @@
 
-# # Blockchain-Distributed-IDS - Client Node  
-#
-# This notebook runs on a **client node** in the Blockchain-Distributed-IDS system. It trains a local Intrusion Detection System (IDS) model and participates in **Federated Learning** using the Flower framework.  
+# # IDS - Client Node
 #
 # ## Author  
 # **Charles Stolz**  
@@ -37,7 +35,7 @@ from imblearn.over_sampling import RandomOverSampler
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-CONFIG_PATH = "../config/client_config.json"
+CONFIG_PATH = "../../configs/clients/beta.json"
 with open(CONFIG_PATH, "r") as f:
     config = json.load(f)
 
@@ -91,11 +89,6 @@ def build_model():
                   metrics=["accuracy", "Precision", "Recall", "AUC"])
     return model
 
-def hash_model_weights(weights) -> str:
-    hasher = hashlib.sha256()
-    for weight in weights:
-        hasher.update(weight.tobytes())
-    return hasher.hexdigest()
 
 def simulate_detection(X_stream, y_stream, model):
     logger.info("Starting real-time detection loop with Prometheus metrics...")
@@ -121,7 +114,6 @@ inference_latency = Gauge('inference_latency_ms', 'Latency per prediction in mil
 alerts_triggered = Gauge('alerts_triggered', 'Number of attack predictions')
 predicted_class = Gauge('predicted_class', 'Latest predicted class (0 or 1)')
 model_training_rounds = Counter('model_training_rounds_total', 'Total number of FL training rounds completed')
-model_hash_changes = Counter('model_hash_changes_total', 'Number of unique model weight updates')
 
 class FlowerClient(fl.client.NumPyClient):
     def get_parameters(self, config):
@@ -142,15 +134,6 @@ class FlowerClient(fl.client.NumPyClient):
         )
         logger.info(f"Training completed. Final Loss: {history.history['loss'][-1]}")
         current_weights = self.get_parameters(config)
-        model_hash = hash_model_weights(current_weights)
-        model_training_rounds.inc()
-        model_hash_changes.inc()
-        ssd_path = "/home/rtikes/ml-data/flower/model_hashes.log"
-        timestamp = datetime.utcnow().isoformat() + 'Z'
-        os.makedirs(os.path.dirname(ssd_path), exist_ok=True)
-        with open(ssd_path, "a") as f:
-            f.write(f"{CLIENT_ID},{timestamp},{model_hash}\n")
-        logger.info(f"Model hash: {model_hash} (saved to {ssd_path})")
         return current_weights, len(X_train), {}
 
     def evaluate(self, parameters, config):
