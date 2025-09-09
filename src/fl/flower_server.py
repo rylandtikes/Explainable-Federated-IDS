@@ -112,7 +112,7 @@ class FedProxStrategy(FedProx):
 logger.info("Starting Flower Server...")
 fl.server.start_server(
     server_address="0.0.0.0:9091",
-    config=fl.server.ServerConfig(num_rounds=10, round_timeout=300),
+    config=fl.server.ServerConfig(num_rounds=100, round_timeout=300),
     strategy=FedProxStrategy(proximal_mu=0.1),
 )
 
