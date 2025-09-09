@@ -24,14 +24,12 @@ Flower Federated Learning Framework:
 
 import os
 import flwr as fl
-import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
-from flwr.server.strategy import FedProx
+from flwr.server.strategy import FedAvg
 import logging
-import hashlib
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 tf.config.set_visible_devices([], "GPU")
@@ -63,56 +61,21 @@ else:
     model = build_model()
     logger.info("No saved model found. Creating new.")
 
+# Get initial model parameters
+initial_parameters = fl.common.ndarrays_to_parameters(model.get_weights())
 
-# Custom FedProx Strategy
-class FedProxStrategy(FedProx):
-    def configure_fit(self, server_round, parameters, client_manager):
-        available_clients = client_manager.num_available()
-        logger.info(f"{available_clients} clients available. Selecting for training.")
+# Create FedAvg strategy with example-weighted aggregation
+strategy = FedAvg(
+    initial_parameters=initial_parameters,
+    min_available_clients=1,  # Allow training with just 1 client
+    min_fit_clients=1,        # Minimum clients for training
+    min_evaluate_clients=0,   # No evaluation required
+)
 
-        sample_size = available_clients
-        clients = client_manager.sample(num_clients=sample_size)
-
-        if not clients:
-            logger.warning("No clients available for training.")
-            return None
-
-        logger.info(f"Requesting training from {len(clients)} clients.")
-        return [(client, fl.common.FitIns(parameters, {})) for client in clients]
-
-    def aggregate_fit(self, server_round, results, failures):
-        logger.info(f"Aggregating results for round {server_round}")
-
-        if failures:
-            logger.warning(f"{len(failures)} client(s) failed.")
-
-        if not results:
-            logger.error("No valid results received for aggregation.")
-            return None, {}
-
-        try:
-            client_weights = [fl.common.parameters_to_ndarrays(res.parameters) for _, res in results]
-
-            for idx, weights in enumerate(client_weights):
-                if weights[0].shape[0] != INPUT_SHAPE:
-                    logger.error(f"Client {idx+1} sent incorrect feature shape: {weights[0].shape}. Expected {INPUT_SHAPE}.")
-                    return None, {}
-
-            # Aggregate using FedAvg (or FedProx logic)
-            aggregated_weights = np.mean(np.array(client_weights, dtype=object), axis=0)
-            model.set_weights(aggregated_weights)
-            model.save(MODEL_PATH)
-            logger.info("Model aggregated and saved.")
-
-            return fl.common.ndarrays_to_parameters(aggregated_weights), {}
-        except Exception as e:
-            logger.error(f"Aggregation error: {e}")
-            return None, {}
-
-logger.info("Starting Flower Server...")
+logger.info("Starting Flower Server with built-in FedAvg...")
 fl.server.start_server(
     server_address="0.0.0.0:9091",
-    config=fl.server.ServerConfig(num_rounds=100, round_timeout=300),
-    strategy=FedProxStrategy(proximal_mu=0.1),
+    config=fl.server.ServerConfig(num_rounds=1, round_timeout=300),
+    strategy=strategy,
 )
 
