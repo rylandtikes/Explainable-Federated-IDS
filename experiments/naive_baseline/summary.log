@@ -1,0 +1,10 @@
+➜  e1 python compute-avg.py alpha_last10.txt
+Acc=94.11% Prec=99.09% Rec=89.04% F1=93.80% AUC=99.63%
+➜  e1 python compute-avg.py beta_last10.txt 
+Acc=94.91% Prec=99.31% Rec=90.44% F1=94.67% AUC=99.56%
+➜  e1 python compute-avg.py epsilon_last10.txt 
+Acc=95.68% Prec=97.96% Rec=93.30% F1=95.58% AUC=99.47%
+➜  e1 python compute-avg.py orin_last10.txt 
+Acc=92.19% Prec=98.65% Rec=85.57% F1=91.64% AUC=99.42%
+➜  e1 python compute-avg.py zeta_last10.txt 
+Acc=93.91% Prec=97.93% Rec=89.75% F1=93.66% AUC=99.54%
