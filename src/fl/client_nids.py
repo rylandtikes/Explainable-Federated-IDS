@@ -190,6 +190,95 @@ def explain_canary(model, scaler):
         print(f"XAI_INFO Running {len(enabled_methods)} XAI methods on {len(X)} canary samples: {', '.join(enabled_methods)}")
         
         xai_results = {}
+        # Get baseline memory before any XAI methods
+        baseline_mem_mb = proc.memory_info().rss / (1024**2)
+        
+        # Method 1: Gradient×Input (if enabled)
+        if TEST_GRADIENT_INPUT:
+            print("XAI_METHOD Testing Gradient×Input...")
+            t0 = time.time()
+            
+            explanations_grad = grad_x_input(model, X)
+            
+            dt_grad = (time.time() - t0) * 1000.0  # ms
+            mem_after_grad = proc.memory_info().rss / (1024**2)
+            xai_results['gradxinput_ms'] = dt_grad / len(X)
+            # Use max to avoid negative memory values due to GC
+            xai_results['gradxinput_mem_mb'] = max(0.0, mem_after_grad - baseline_mem_mb)
+            print(f"  → Gradient×Input: {xai_results['gradxinput_ms']:.2f}ms/sample, {xai_results['gradxinput_mem_mb']:.1f}MB overhead")
+        
+        # Method 2: SHAP (if enabled and available)
+        if TEST_SHAP:
+            try:
+                import shap
+                print("XAI_METHOD Testing SHAP...")
+                # Force garbage collection before SHAP to get cleaner measurement
+                import gc
+                gc.collect()
+                mem_before_shap = proc.memory_info().rss / (1024**2)
+                
+                t0 = time.time()
+                
+                # Use a subset for SHAP due to computational cost
+                X_shap = X[:16]  # Reduce for SHAP overhead
+                explainer = shap.KernelExplainer(model.predict, X_shap[:8])  # Background samples
+                shap_values = explainer.shap_values(X_shap)
+                
+                dt_shap = (time.time() - t0) * 1000.0  # ms
+                mem_after_shap = proc.memory_info().rss / (1024**2)
+                xai_results['shap_ms'] = dt_shap / len(X_shap)
+                # Use max to avoid negative memory values
+                xai_results['shap_mem_mb'] = max(0.0, mem_after_shap - mem_before_shap)
+                print(f"  → SHAP: {xai_results['shap_ms']:.2f}ms/sample, {xai_results['shap_mem_mb']:.1f}MB overhead")
+                
+            except ImportError:
+                print("XAI_WARNING SHAP not available - install with: pip install shap")
+                xai_results['shap_ms'] = None
+                xai_results['shap_mem_mb'] = None
+            except Exception as e:
+                print(f"XAI_ERROR SHAP failed: {e}")
+                xai_results['shap_ms'] = None
+                xai_results['shap_mem_mb'] = None
+        
+        # Method 3: LIME (if enabled and available) 
+        if TEST_LIME:
+            try:
+                from lime import lime_tabular
+                print("XAI_METHOD Testing LIME...")
+                # Force garbage collection before LIME
+                import gc
+                gc.collect()
+                mem_before_lime = proc.memory_info().rss / (1024**2)
+                
+                t0 = time.time()
+                
+                # LIME for tabular data
+                X_lime = X[:16]  # Reduce for LIME overhead
+                explainer = lime_tabular.LimeTabularExplainer(X_lime, mode='classification')
+                
+                # Explain one instance
+                def model_predict_proba(x):
+                    return np.column_stack([1 - model.predict(x), model.predict(x)])
+                
+                explanation = explainer.explain_instance(X_lime[0], model_predict_proba, num_features=10)
+                
+                dt_lime = (time.time() - t0) * 1000.0  # ms
+                mem_after_lime = proc.memory_info().rss / (1024**2)
+                xai_results['lime_ms'] = dt_lime  # Per instance
+                # Use max to avoid negative memory values
+                xai_results['lime_mem_mb'] = max(0.0, mem_after_lime - mem_before_lime)
+                print(f"  → LIME: {xai_results['lime_ms']:.2f}ms/instance, {xai_results['lime_mem_mb']:.1f}MB overhead")
+                
+            except ImportError:
+                print("XAI_WARNING LIME not available - install with: pip install lime")
+                xai_results['lime_ms'] = None
+                xai_results['lime_mem_mb'] = None
+            except Exception as e:
+                print(f"XAI_ERROR LIME failed: {e}")
+                xai_results['lime_ms'] = None
+                xai_results['lime_mem_mb'] = None
+        
+        xai_results = {}
         
         # Method 1: Gradient×Input (if enabled)
         if TEST_GRADIENT_INPUT:
