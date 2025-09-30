@@ -1,0 +1,35 @@
+Without Scoring 
+
+	node-epsilon
+
+	INFO:__main__:Evaluation completed. Loss: 1.7223572731018066, Accuracy: 0.6081500053405762, Precision: 0.5950101017951965, Recall: 0.677299976348877, AUC: 0.5666152238845825
+
+
+	node-zeta (poisioned Client)
+
+	INFO:flwr:Received: evaluate message 2738a5cd-6af8-4d51-9446-4ec58b3db37d
+	625/625 ━━━━━━━━━━━━━━━━━━━━ 1s 1ms/step - AUC: 0.5679 - Precision: 0.5974 - Recall: 0.6799 - accuracy: 0.6107 - loss: 1.6851 
+
+
+
+	node-beta
+
+	INFO:__main__:Evaluation completed. Loss: 1.7819054126739502, Accuracy: 0.5809500217437744, 
+	Precision: 0.5731057524681091, Recall: 0.6345999836921692, AUC: 0.5540474653244019
+
+
+
+With Scoring 
+
+	node-epsilon
+	625/625 ━━━━━━━━━━━━━━━━━━━━ 1s 1ms/step - AUC: 0.9955 - Precision: 0.9627 - Recall: 0.9727 - accuracy: 0.9675 - loss: 0.0892  
+	INFO:__main__:Evaluation completed. Loss: 0.08807467669248581, Accuracy: 0.96875, Precision: 0.9647992253303528, Recall: 0.9729999899864197, AUC: 0.9955979585647583
+
+	node-zeta (poisioned Client)
+
+	INFO:flwr:Received: evaluate message 109b33f0-f1fa-45fb-ab3b-aeb52c160a42
+	625/625 ━━━━━━━━━━━━━━━━━━━━ 1s 1ms/step - AUC: 0.9934 - Precision: 0.9633 - Recall: 0.9613 - accuracy: 0.9623 - loss: 0.1082 
+
+	node-beta
+
+	INFO:__main__:Evaluation completed. Loss: 0.08309070765972137, Accuracy: 0.9692000150680542, Precision: 0.9758620858192444, Recall: 0.9621999859809875, AUC: 0.9966577887535095
